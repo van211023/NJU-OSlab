@@ -1,0 +1,186 @@
+
+bootloader.elf：     文件格式 elf32-i386
+
+
+Disassembly of section .text:
+
+00007c00 <start>:
+    7c00:	8c c8                	mov    %cs,%eax
+    7c02:	8e d8                	mov    %eax,%ds
+    7c04:	8e c0                	mov    %eax,%es
+    7c06:	8e d0                	mov    %eax,%ss
+    7c08:	fa                   	cli    
+    7c09:	e4 92                	in     $0x92,%al
+    7c0b:	0c 02                	or     $0x2,%al
+    7c0d:	e6 92                	out    %al,$0x92
+    7c0f:	67 66 0f 01 15       	lgdtw  (%di)
+    7c14:	68 7c 00 00 0f       	push   $0xf00007c
+    7c19:	20 c0                	and    %al,%al
+    7c1b:	0c 01                	or     $0x1,%al
+    7c1d:	0f 22 c0             	mov    %eax,%cr0
+    7c20:	66 ea 28 7c 00 00    	ljmpw  $0x0,$0x7c28
+    7c26:	08 00                	or     %al,(%eax)
+
+00007c28 <start32>:
+    7c28:	66 b8 10 00          	mov    $0x10,%ax
+    7c2c:	8e d8                	mov    %eax,%ds
+    7c2e:	8e c0                	mov    %eax,%es
+    7c30:	8e e0                	mov    %eax,%fs
+    7c32:	8e d0                	mov    %eax,%ss
+    7c34:	66 b8 18 00          	mov    $0x18,%ax
+    7c38:	8e e8                	mov    %eax,%gs
+    7c3a:	b8 00 00 20 00       	mov    $0x200000,%eax
+    7c3f:	89 c4                	mov    %eax,%esp
+    7c41:	e9 d9 00 00 00       	jmp    7d1f <bootMain>
+    7c46:	66 90                	xchg   %ax,%ax
+
+00007c48 <gdt>:
+	...
+    7c50:	ff                   	(bad)  
+    7c51:	ff 00                	incl   (%eax)
+    7c53:	00 00                	add    %al,(%eax)
+    7c55:	9a cf 00 ff ff 00 00 	lcall  $0x0,$0xffff00cf
+    7c5c:	00 92 cf 00 ff ff    	add    %dl,-0xff31(%edx)
+    7c62:	00 80 0b 92 cf 00    	add    %al,0xcf920b(%eax)
+
+00007c68 <gdtDesc>:
+    7c68:	1f                   	pop    %ds
+    7c69:	00 48 7c             	add    %cl,0x7c(%eax)
+	...
+
+00007c6e <load_memcpy>:
+    7c6e:	55                   	push   %ebp
+    7c6f:	89 e5                	mov    %esp,%ebp
+    7c71:	53                   	push   %ebx
+    7c72:	8b 45 08             	mov    0x8(%ebp),%eax
+    7c75:	8b 4d 0c             	mov    0xc(%ebp),%ecx
+    7c78:	31 d2                	xor    %edx,%edx
+    7c7a:	3b 55 10             	cmp    0x10(%ebp),%edx
+    7c7d:	74 09                	je     7c88 <load_memcpy+0x1a>
+    7c7f:	8a 1c 11             	mov    (%ecx,%edx,1),%bl
+    7c82:	88 1c 10             	mov    %bl,(%eax,%edx,1)
+    7c85:	42                   	inc    %edx
+    7c86:	eb f2                	jmp    7c7a <load_memcpy+0xc>
+    7c88:	5b                   	pop    %ebx
+    7c89:	5d                   	pop    %ebp
+    7c8a:	c3                   	ret    
+
+00007c8b <load_memset>:
+    7c8b:	55                   	push   %ebp
+    7c8c:	89 e5                	mov    %esp,%ebp
+    7c8e:	8b 45 08             	mov    0x8(%ebp),%eax
+    7c91:	8a 4d 0c             	mov    0xc(%ebp),%cl
+    7c94:	31 d2                	xor    %edx,%edx
+    7c96:	3b 55 10             	cmp    0x10(%ebp),%edx
+    7c99:	74 06                	je     7ca1 <load_memset+0x16>
+    7c9b:	88 0c 10             	mov    %cl,(%eax,%edx,1)
+    7c9e:	42                   	inc    %edx
+    7c9f:	eb f5                	jmp    7c96 <load_memset+0xb>
+    7ca1:	5d                   	pop    %ebp
+    7ca2:	c3                   	ret    
+
+00007ca3 <waitDisk>:
+    7ca3:	55                   	push   %ebp
+    7ca4:	89 e5                	mov    %esp,%ebp
+    7ca6:	ba f7 01 00 00       	mov    $0x1f7,%edx
+    7cab:	ec                   	in     (%dx),%al
+    7cac:	25 c0 00 00 00       	and    $0xc0,%eax
+    7cb1:	83 f8 40             	cmp    $0x40,%eax
+    7cb4:	75 f5                	jne    7cab <waitDisk+0x8>
+    7cb6:	5d                   	pop    %ebp
+    7cb7:	c3                   	ret    
+
+00007cb8 <readSect>:
+    7cb8:	55                   	push   %ebp
+    7cb9:	89 e5                	mov    %esp,%ebp
+    7cbb:	53                   	push   %ebx
+    7cbc:	8b 4d 0c             	mov    0xc(%ebp),%ecx
+    7cbf:	e8 df ff ff ff       	call   7ca3 <waitDisk>
+    7cc4:	b0 01                	mov    $0x1,%al
+    7cc6:	ba f2 01 00 00       	mov    $0x1f2,%edx
+    7ccb:	ee                   	out    %al,(%dx)
+    7ccc:	ba f3 01 00 00       	mov    $0x1f3,%edx
+    7cd1:	88 c8                	mov    %cl,%al
+    7cd3:	ee                   	out    %al,(%dx)
+    7cd4:	89 c8                	mov    %ecx,%eax
+    7cd6:	c1 f8 08             	sar    $0x8,%eax
+    7cd9:	ba f4 01 00 00       	mov    $0x1f4,%edx
+    7cde:	ee                   	out    %al,(%dx)
+    7cdf:	89 c8                	mov    %ecx,%eax
+    7ce1:	c1 f8 10             	sar    $0x10,%eax
+    7ce4:	ba f5 01 00 00       	mov    $0x1f5,%edx
+    7ce9:	ee                   	out    %al,(%dx)
+    7cea:	89 c8                	mov    %ecx,%eax
+    7cec:	c1 f8 18             	sar    $0x18,%eax
+    7cef:	83 c8 e0             	or     $0xffffffe0,%eax
+    7cf2:	ba f6 01 00 00       	mov    $0x1f6,%edx
+    7cf7:	ee                   	out    %al,(%dx)
+    7cf8:	b0 20                	mov    $0x20,%al
+    7cfa:	ba f7 01 00 00       	mov    $0x1f7,%edx
+    7cff:	ee                   	out    %al,(%dx)
+    7d00:	e8 9e ff ff ff       	call   7ca3 <waitDisk>
+    7d05:	31 c9                	xor    %ecx,%ecx
+    7d07:	ba f0 01 00 00       	mov    $0x1f0,%edx
+    7d0c:	ed                   	in     (%dx),%eax
+    7d0d:	8b 5d 08             	mov    0x8(%ebp),%ebx
+    7d10:	89 04 8b             	mov    %eax,(%ebx,%ecx,4)
+    7d13:	41                   	inc    %ecx
+    7d14:	81 f9 80 00 00 00    	cmp    $0x80,%ecx
+    7d1a:	75 f0                	jne    7d0c <readSect+0x54>
+    7d1c:	5b                   	pop    %ebx
+    7d1d:	5d                   	pop    %ebp
+    7d1e:	c3                   	ret    
+
+00007d1f <bootMain>:
+    7d1f:	55                   	push   %ebp
+    7d20:	89 e5                	mov    %esp,%ebp
+    7d22:	57                   	push   %edi
+    7d23:	56                   	push   %esi
+    7d24:	53                   	push   %ebx
+    7d25:	83 ec 1c             	sub    $0x1c,%esp
+    7d28:	31 db                	xor    %ebx,%ebx
+    7d2a:	43                   	inc    %ebx
+    7d2b:	53                   	push   %ebx
+    7d2c:	8d 83 ff 0f 00 00    	lea    0xfff(%ebx),%eax
+    7d32:	c1 e0 09             	shl    $0x9,%eax
+    7d35:	50                   	push   %eax
+    7d36:	e8 7d ff ff ff       	call   7cb8 <readSect>
+    7d3b:	58                   	pop    %eax
+    7d3c:	5a                   	pop    %edx
+    7d3d:	81 fb c8 00 00 00    	cmp    $0xc8,%ebx
+    7d43:	75 e5                	jne    7d2a <bootMain+0xb>
+    7d45:	a1 18 00 20 00       	mov    0x200018,%eax
+    7d4a:	89 45 e4             	mov    %eax,-0x1c(%ebp)
+    7d4d:	8b 35 1c 00 20 00    	mov    0x20001c,%esi
+    7d53:	0f b7 05 2c 00 20 00 	movzwl 0x20002c,%eax
+    7d5a:	89 45 e0             	mov    %eax,-0x20(%ebp)
+    7d5d:	31 ff                	xor    %edi,%edi
+    7d5f:	3b 7d e0             	cmp    -0x20(%ebp),%edi
+    7d62:	7d 3d                	jge    7da1 <bootMain+0x82>
+    7d64:	8d 9e 00 00 20 00    	lea    0x200000(%esi),%ebx
+    7d6a:	83 be 00 00 20 00 01 	cmpl   $0x1,0x200000(%esi)
+    7d71:	75 2b                	jne    7d9e <bootMain+0x7f>
+    7d73:	ff 73 10             	pushl  0x10(%ebx)
+    7d76:	8b 43 04             	mov    0x4(%ebx),%eax
+    7d79:	05 00 00 20 00       	add    $0x200000,%eax
+    7d7e:	50                   	push   %eax
+    7d7f:	ff 73 08             	pushl  0x8(%ebx)
+    7d82:	e8 e7 fe ff ff       	call   7c6e <load_memcpy>
+    7d87:	8b 43 10             	mov    0x10(%ebx),%eax
+    7d8a:	8b 4b 14             	mov    0x14(%ebx),%ecx
+    7d8d:	29 c1                	sub    %eax,%ecx
+    7d8f:	51                   	push   %ecx
+    7d90:	6a 00                	push   $0x0
+    7d92:	03 43 08             	add    0x8(%ebx),%eax
+    7d95:	50                   	push   %eax
+    7d96:	e8 f0 fe ff ff       	call   7c8b <load_memset>
+    7d9b:	83 c4 18             	add    $0x18,%esp
+    7d9e:	47                   	inc    %edi
+    7d9f:	eb be                	jmp    7d5f <bootMain+0x40>
+    7da1:	8b 45 e4             	mov    -0x1c(%ebp),%eax
+    7da4:	8d 65 f4             	lea    -0xc(%ebp),%esp
+    7da7:	5b                   	pop    %ebx
+    7da8:	5e                   	pop    %esi
+    7da9:	5f                   	pop    %edi
+    7daa:	5d                   	pop    %ebp
+    7dab:	ff e0                	jmp    *%eax
